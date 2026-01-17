@@ -1,0 +1,22 @@
+# Bibliotecas (Nunca subir)
+node_modules/
+
+# Configurações locais e segredos
+.env
+.env.local
+
+# Banco de dados e logs
+*.sqlite
+*.log
+
+# Pasta de uploads (geralmente não subimos as fotos de teste)
+backend/uploads/
+backend/tmp/
+
+# Pastas de build/produção
+dist/
+build/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
