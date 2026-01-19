@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from './services/api';
+import { addMonths, format } from 'date-fns';
 
 // --- IMPORTAÇÃO DO TOASTIFY ---
 import { ToastContainer, toast } from 'react-toastify';
@@ -86,10 +87,12 @@ const FormularioCadastro = ({ planos, aoCadastrar, alunoParaEdicao, aoCancelarEd
   }, [alunoParaEdicao, planos]);
 
   const handlePlanoChange = (e) => {
-    const id = e.target.value;
-    setPlanoId(id);
-    if (!alunoParaEdicao) {
-      calcularVencimentoSugerido(id);
+    const novoPlanoId = e.target.value;
+    setPlanoId(novoPlanoId);
+
+    // Mágica: Recalcula a data na hora que o usuário troca o plano no select
+    if (novoPlanoId) {
+      calcularVencimentoSugerido(novoPlanoId);
       toast.info("Data ajustada conforme o plano!");
     }
   };
@@ -113,70 +116,81 @@ const FormularioCadastro = ({ planos, aoCadastrar, alunoParaEdicao, aoCancelarEd
     const sucesso = await aoCadastrar(data, alunoParaEdicao?.id);
 
     if (sucesso) {
+      // Se for um novo cadastro (não edição), limpamos o formulário
       if (!alunoParaEdicao) {
-        setNome(''); setEmail(''); setCpf(''); setFoto(null);
+        setNome(''); 
+        setEmail(''); 
+        setCpf(''); 
+        setFoto(null);
+        
         if (planos.length > 0) {
-           setPlanoId(planos[0].id);
-           calcularVencimentoSugerido(planos[0].id);
+          const idPadrao = planos[0].id;
+          setPlanoId(idPadrao);
+          calcularVencimentoSugerido(idPadrao);
         }
-        if (document.getElementById('foto-input')) document.getElementById('foto-input').value = '';
+        
+        // Limpa o campo de arquivo visualmente
+        const inputFoto = document.getElementById('foto-input');
+        if (inputFoto) inputFoto.value = '';
+        
       } else {
+        // Se for edição, apenas fecha o formulário/modal
         aoCancelarEdicao();
       }
     }
   };
 
-  return (
-    <div className="max-w-5xl w-full bg-white rounded-3xl shadow-xl p-6 md:p-8 mb-8 border border-gray-100">
-      <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
-        {alunoParaEdicao ? `Editando: ${alunoParaEdicao.nome}` : 'Nova Matrícula'}
-      </h2>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-        <Input required label="Nome Completo" value={nome} onChange={setNome} placeholder="Ex: João Silva" />
-        
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">E-mail (*)</label>
-          <input required type="email" className="input-field" value={email} onChange={e => setEmail(e.target.value)} placeholder="aluno@email.com" />
-        </div>
+return (
+  <div className="max-w-5xl w-full bg-white rounded-3xl shadow-xl p-6 md:p-8 mb-8 border border-gray-100">
+    <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+      <span className="w-1.5 h-5 bg-blue-600 rounded-full"></span>
+      {alunoParaEdicao ? `Editando: ${alunoParaEdicao.nome}` : 'Nova Matrícula'}
+    </h2>
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+      <Input required label="Nome Completo" value={nome} onChange={setNome} placeholder="Ex: João Silva" />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">CPF(*)</label>
-          <input required className="input-field" value={cpf} onChange={e => setCpf(formatarCPF(e.target.value))} placeholder="000.000.000-00" />
-        </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">E-mail (*)</label>
+        <input required type="email" className="input-field" value={email} onChange={e => setEmail(e.target.value)} placeholder="aluno@email.com" />
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Plano de Treino</label>
-          <select className="input-field cursor-pointer font-semibold text-gray-700 bg-blue-50/50" value={planoId} onChange={handlePlanoChange}>
-            {planos.map(p => (
-              <option key={p.id} value={p.id}>{p.nome} — {formatarMoeda(p.preco)}</option>
-            ))}
-          </select>
-        </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">CPF(*)</label>
+        <input required className="input-field" value={cpf} onChange={e => setCpf(formatarCPF(e.target.value))} placeholder="000.000.000-00" />
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Vencimento Calculado</label>
-          <input required type="date" className="input-field border-blue-200" value={dataVencimento} onChange={(e) => setDataVencimento(e.target.value)} />
-        </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Plano de Treino</label>
+        <select className="input-field cursor-pointer font-semibold text-gray-700 bg-blue-50/50" value={planoId} onChange={handlePlanoChange}>
+          {planos.map(p => (
+            <option key={p.id} value={p.id}>{p.nome} — {formatarMoeda(p.preco)}</option>
+          ))}
+        </select>
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Foto do Perfil</label>
-          <input id="foto-input" type="file" className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 font-bold" onChange={e => setFoto(e.target.files[0])} />
-        </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Vencimento Calculado</label>
+        <input required type="date" className="input-field border-blue-200" value={dataVencimento} onChange={(e) => setDataVencimento(e.target.value)} />
+      </div>
 
-        <div className="flex gap-2 lg:col-span-3 justify-end mt-4">
-          {alunoParaEdicao && (
-            <button type="button" onClick={aoCancelarEdicao} className="bg-gray-100 hover:bg-gray-200 px-8 py-3 rounded-2xl font-bold text-gray-500 transition-colors">
-              Cancelar
-            </button>
-          )}
-          <button type="submit" className={`px-12 font-bold py-3 rounded-2xl text-white shadow-lg transition-transform active:scale-95 ${alunoParaEdicao ? 'bg-orange-500' : 'bg-blue-600'}`}>
-            {alunoParaEdicao ? 'Atualizar Dados' : 'Finalizar Matrícula'}
+      <div className="flex flex-col gap-1">
+        <label className="text-[12px] font-bold text-gray-400 uppercase ml-1">Foto do Perfil</label>
+        <input id="foto-input" type="file" className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 font-bold" onChange={e => setFoto(e.target.files[0])} />
+      </div>
+
+      <div className="flex gap-2 lg:col-span-3 justify-end mt-4">
+        {alunoParaEdicao && (
+          <button type="button" onClick={aoCancelarEdicao} className="bg-gray-100 hover:bg-gray-200 px-8 py-3 rounded-2xl font-bold text-gray-500 transition-colors">
+            Cancelar
           </button>
-        </div>
-      </form>
-    </div>
-  );
+        )}
+        <button type="submit" className={`px-12 font-bold py-3 rounded-2xl text-white shadow-lg transition-transform active:scale-95 ${alunoParaEdicao ? 'bg-orange-500' : 'bg-blue-600'}`}>
+          {alunoParaEdicao ? 'Atualizar Dados' : 'Finalizar Matrícula'}
+        </button>
+      </div>
+    </form>
+  </div>
+);
 };
 
 const Input = ({ label, value, onChange, type = "text", placeholder }) => (
@@ -207,10 +221,10 @@ function App() {
       setPlanos(resPlanos.data);
       setAlunos(resAlunos.data);
       setFinanceiro(resDash.data);
-    } catch (err) { 
+    } catch (err) {
       toast.error("Erro ao carregar dados do servidor.");
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -226,10 +240,10 @@ function App() {
       await fetchData();
       setAlunoEmEdicao(null);
       return true;
-    } catch (err) { 
+    } catch (err) {
       const msgErro = err.response?.data?.error || "Erro na operação.";
       toast.error(msgErro.includes('UNIQUE') ? "Este e-mail ou CPF já está cadastrado!" : msgErro);
-      return false; 
+      return false;
     }
   };
 
@@ -255,8 +269,8 @@ function App() {
     }
   };
 
-  const alunosFiltrados = alunos.filter(a => 
-    a.nome.toLowerCase().includes(busca.toLowerCase()) || 
+  const alunosFiltrados = alunos.filter(a =>
+    a.nome.toLowerCase().includes(busca.toLowerCase()) ||
     a.cpf.includes(busca)
   );
 
@@ -283,11 +297,11 @@ function App() {
         <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50">
           <h2 className="font-black text-gray-700 uppercase text-sm tracking-wider">Membros Ativos</h2>
           <div className="relative w-full md:w-64">
-            <input 
-              className="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-              placeholder="Buscar por nome ou CPF..." 
-              value={busca} 
-              onChange={e => setBusca(e.target.value)} 
+            <input
+              className="w-full px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              placeholder="Buscar por nome ou CPF..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
             />
           </div>
         </div>
@@ -324,8 +338,8 @@ function App() {
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap">
                     <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${aluno.situacao === 'Em dia'
-                        ? 'bg-green-100 text-green-700 border border-green-200'
-                        : 'bg-red-100 text-red-700 border border-red-200'
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-red-100 text-red-700 border border-red-200'
                       }`}>
                       {aluno.situacao}
                     </span>

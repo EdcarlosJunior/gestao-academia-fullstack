@@ -126,41 +126,53 @@ module.exports = {
 
   // 4. Atualização de dados - CORRIGIDO PARA ACEITAR DATA MANUAL
   async update(req, res) {
-    const { id } = req.params;
-    const { nome, email, cpf, plano_id, data_vencimento } = req.body; // <-- Adicionado data_vencimento
+  const { id } = req.params;
+  const { nome, email, cpf, plano_id, data_vencimento } = req.body;
 
-    try {
-      const aluno = await db('alunos').where({ id }).first();
-      if (!aluno) return res.status(404).json({ error: 'Aluno não encontrado.' });
+  try {
+    const aluno = await db('alunos').where({ id }).first();
+    if (!aluno) return res.status(404).json({ error: 'Aluno não encontrado.' });
 
-      // PRIORIDADE: Se veio data nova do formulário, usa ela.
-      // SENÃO, se mudou o plano, recalcula. SENÃO, mantém a antiga.
-      let nova_data_vencimento = data_vencimento || aluno.data_vencimento;
+    // LOG 1: Verificar o que está chegando do formulário
+    console.log("------------------------------------------");
+    console.log("Recebido do Front:", { plano_id, data_vencimento });
+    console.log("No Banco atualmente:", { plano_id: aluno.plano_id, data_vencimento: aluno.data_vencimento });
 
-      if (!data_vencimento && plano_id !== undefined && Number(plano_id) !== aluno.plano_id) {
-        const novoPlano = await db('planos').where('id', Number(plano_id)).first();
-        if (novoPlano) {
-          nova_data_vencimento = format(addMonths(new Date(), novoPlano.duracao_meses), 'yyyy-MM-dd');
-        }
+    let nova_data_vencimento = data_vencimento || aluno.data_vencimento;
+
+    // A condição !data_vencimento só entra aqui se o campo data vier vazio do front
+    if (!data_vencimento && plano_id && Number(plano_id) !== Number(aluno.plano_id)) {
+      const novoPlano = await db('planos').where('id', Number(plano_id)).first();
+
+      if (novoPlano) {
+        nova_data_vencimento = format(addMonths(new Date(), novoPlano.duracao_meses), 'yyyy-MM-dd');
+        
+        // LOG 2: Confirmar que o cálculo foi feito
+        console.log(`✅ SUCESSO: Plano mudou para ${plano_id}. Novo vencimento calculado: ${nova_data_vencimento}`);
       }
-
-      await db('alunos')
-        .where({ id })
-        .update({
-          nome,
-          email,
-          cpf,
-          plano_id: Number(plano_id),
-          data_vencimento: nova_data_vencimento,
-          foto: req.file ? req.file.filename : aluno.foto
-        });
-
-      return res.json({ message: 'Aluno atualizado com sucesso!' });
-    } catch (error) {
-      console.error("ERRO NO UPDATE:", error);
-      return res.status(500).json({ error: 'Erro interno ao atualizar aluno.' });
+    } else {
+      // LOG 3: Caso o sistema decida não recalcular
+      console.log("ℹ️ INFO: Plano não alterado ou data já fornecida. Mantendo data original.");
     }
-  },
+
+    await db('alunos')
+      .where({ 'id': id })
+      .update({
+        nome,
+        email,
+        cpf,
+        plano_id: Number(plano_id),
+        data_vencimento: nova_data_vencimento,
+        foto: req.file ? req.file.filename : aluno.foto
+      });
+
+    console.log("------------------------------------------");
+    return res.json({ message: 'Aluno atualizado com sucesso!' });
+  } catch (error) {
+    console.error("❌ ERRO NO UPDATE:", error);
+    return res.status(500).json({ error: 'Erro interno ao atualizar aluno.' });
+  }
+},
 
   // 5. Exclusão de matrícula
   async delete(req, res) {
