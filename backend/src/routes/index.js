@@ -1,7 +1,6 @@
 const express = require('express');
 const routes = express.Router();
 const multer = require('multer');
-const path = require('path');
 
 const multerConfig = require('./config/multer'); 
 const upload = multer(multerConfig);
@@ -21,41 +20,44 @@ const roleMiddleware = require('../middlewares/roleMiddleware');
 
 // =============================================================
 // 1. ROTAS PÚBLICAS (Acesso Livre)
-// Organizadas para que o Dashboard e o CRUD de Alunos funcionem sem travas
+// =============================================================
+routes.post('/login', SessionController.create);
+routes.post('/funcionarios', FuncionarioController.create); // Cadastro inicial
+
+// =============================================================
+// 2. MIDDLEWARE GLOBAL DE AUTENTICAÇÃO
+// A partir daqui, TODAS as rotas exigem que o usuário esteja logado
+// =============================================================
+routes.use(authMiddleware);
+
+// =============================================================
+// 3. ROTAS DE OPERAÇÃO (Qualquer funcionário logado)
 // =============================================================
 
-routes.post('/login', SessionController.create);
-routes.post('/funcionarios', FuncionarioController.create); 
-
-// NOVIDADE: Movida para o topo das públicas para garantir o carregamento dos cards
+// Dashboard Geral
 routes.get('/dashboard', AlunoController.dashboard); 
 
-// Rotas de Alunos
+// Gestão de Alunos
 routes.get('/alunos', AlunoController.index);
 routes.post('/alunos', upload.single('foto'), AlunoController.create); 
 routes.put('/alunos/:id', upload.single('foto'), AlunoController.update);
 routes.delete('/alunos/:id', AlunoController.delete);
 routes.post('/alunos/:id/renovar', AlunoController.renew);
+routes.patch('/alunos/:id/foto', upload.single('foto'), AlunoFotoController.update);
 
-// Rotas de Planos
+// Planos e Relatórios Básicos
 routes.get('/planos', PlanoController.index);
-routes.post('/planos', PlanoController.create); 
+routes.get('/relatorios/inadimplentes', AlunoController.getInadimplentes);
 
 // =============================================================
-// 2. ROTAS PROTEGIDAS (Exigem Token JWT / Nível Gerente)
+// 4. ROTAS ADMINISTRATIVAS (Somente Nível 'Gerente')
 // =============================================================
+routes.get('/dashboard/faturamento', roleMiddleware('Gerente'), DashboardController.faturamento);
+routes.get('/relatorios/exportar', roleMiddleware('Gerente'), RelatorioController.exportarInadimplentes);
+routes.get('/funcionarios', roleMiddleware('Gerente'), FuncionarioController.index);
 
-// Foto específica (usa auth)
-routes.patch('/alunos/:id/foto', authMiddleware, upload.single('foto'), AlunoFotoController.update);
-
-// Relatórios
-routes.get('/relatorios/inadimplentes', authMiddleware, AlunoController.getInadimplentes);
-
-// Administrativo (Gerente)
-routes.get('/dashboard/faturamento', authMiddleware, roleMiddleware('Gerente'), DashboardController.faturamento);
-routes.get('/relatorios/exportar', authMiddleware, roleMiddleware('Gerente'), RelatorioController.exportarInadimplentes);
-routes.get('/funcionarios', authMiddleware, FuncionarioController.index);
-
-routes.delete('/planos/:id', authMiddleware, PlanoController.delete);
+// Apenas gerente pode criar ou deletar planos de preços
+routes.post('/planos', roleMiddleware('Gerente'), PlanoController.create); 
+routes.delete('/planos/:id', roleMiddleware('Gerente'), PlanoController.delete);
 
 module.exports = routes;

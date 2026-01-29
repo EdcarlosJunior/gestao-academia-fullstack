@@ -1,6 +1,7 @@
 const db = require('../database/connection');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken'); // 1. Importar o JWT
+require('dotenv').config();
 
 module.exports = {
   async create(req, res) {
@@ -23,8 +24,8 @@ module.exports = {
 
       // 2. Gerar o Token (o crachá)
       // O primeiro parâmetro é o que queremos guardar (id), o segundo é uma chave secreta
-      const token = jwt.sign({ id, cargo }, 'CHAVE_SECRETA_RCGYM', {
-        expiresIn: '1d', // O token vale por 1 dia
+      const token = jwt.sign({ id, cargo }, process.env.APP_SECRET, {
+        expiresIn: '1d',
       });
 
       return res.json({
