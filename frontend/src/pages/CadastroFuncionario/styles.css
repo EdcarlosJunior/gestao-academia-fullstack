@@ -1,0 +1,78 @@
+.register-container {
+  width: 100%;
+  max-width: 1120px;
+  height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-container .content {
+  width: 100%;
+  padding: 96px;
+  background: #202024;
+  box-shadow: 0 0 100px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.register-container .content section {
+  width: 100%;
+  max-width: 380px;
+}
+
+.register-container .content section h1 {
+  margin: 64px 0 32px;
+  font-size: 32px;
+  color: #fff;
+}
+
+.register-container .content section p {
+  font-size: 18px;
+  color: #8d8d99;
+  line-height: 32px;
+}
+
+.register-container .content form {
+  width: 100%;
+  max-width: 450px;
+}
+
+.register-container .content form input, 
+.register-container .content form select {
+  margin-top: 8px;
+  background: #121214;
+  border: 1px solid #323238;
+  border-radius: 8px;
+  color: #fff;
+  height: 50px;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.select-group {
+  margin-top: 16px;
+}
+
+.select-group label {
+  color: #8d8d99;
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  margin-top: 40px;
+  color: #00875f;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.back-link:hover {
+  opacity: 0.8;
+}
